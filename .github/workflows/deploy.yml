@@ -18,7 +18,8 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd /var/www/bunnings_scheduling
-            git pull origin main
+            git fetch origin
+            git reset --hard origin/main
             source venv/bin/activate
             pip install -r backend/requirements.txt
             python backend/manage.py migrate --settings=config.settings.production
