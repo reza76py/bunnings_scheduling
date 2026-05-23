@@ -22,3 +22,8 @@ DATABASES = {
 		'OPTIONS': {'charset': 'utf8mb4'},
 	}
 }
+
+CORS_ALLOWED_ORIGINS = [
+	"http://s.rezteche.com",
+	"http://65.108.243.73",
+]
