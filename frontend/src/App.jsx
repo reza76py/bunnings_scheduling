@@ -113,11 +113,8 @@ export default function App() {
     <main className="page-shell">
       <section className="card">
         <div className="header-copy">
-          <p className="eyebrow">Counting</p>
-          <h1>SSA Counting Session</h1>
-          <p className="lede">
-            Start a session, capture the timing, and submit it when you finish.
-          </p>
+
+
         </div>
 
         <div className="form-grid">
