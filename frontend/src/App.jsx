@@ -5,12 +5,9 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
 });
 
-const NEW_SUPPLIER_VALUE = "__new__";
-
 export default function App() {
   const [suppliers, setSuppliers] = useState([]);
-  const [supplierChoice, setSupplierChoice] = useState("");
-  const [newSupplierName, setNewSupplierName] = useState("");
+  const [supplierName, setSupplierName] = useState("");
   const [storeNumber, setStoreNumber] = useState("");
   const [value, setValue] = useState("");
   const [people, setPeople] = useState([""]);
@@ -33,7 +30,6 @@ export default function App() {
     loadSuppliers();
   }, []);
 
-  const isAddingNewSupplier = supplierChoice === NEW_SUPPLIER_VALUE;
   const isStarted = Boolean(startTime);
   const buttonLabel = isStarted ? "END" : "START";
   const buttonClassName = isStarted
@@ -65,32 +61,33 @@ export default function App() {
   };
 
   const ensureSupplierId = async () => {
-    if (isAddingNewSupplier) {
-      const name = newSupplierName.trim();
+    const typedName = supplierName.trim();
 
-      if (!name) {
-        throw new Error("Please type a supplier name.");
-      }
-
-      const response = await api.post("/api/suppliers/", { name });
-      const createdSupplier = response.data;
-      setSuppliers((current) => [...current, createdSupplier]);
-      setSupplierChoice(String(createdSupplier.id));
-      setNewSupplierName("");
-      return createdSupplier.id;
-    }
-
-    if (!supplierChoice) {
+    if (!typedName) {
       throw new Error("Please choose a supplier.");
     }
 
-    return supplierChoice;
+    const existingSupplier = suppliers.find(
+      (supplier) =>
+        supplier.name &&
+        supplier.name.trim().toLowerCase() === typedName.toLowerCase(),
+    );
+
+    if (existingSupplier) {
+      setSupplierName(existingSupplier.name);
+      return existingSupplier.id;
+    }
+
+    const response = await api.post("/api/suppliers/", { name: typedName });
+    const createdSupplier = response.data;
+    setSuppliers((current) => [...current, createdSupplier]);
+    setSupplierName(createdSupplier.name || typedName);
+    return createdSupplier.id;
   };
 
   const resetForm = () => {
     setStoreNumber("");
-    setSupplierChoice("");
-    setNewSupplierName("");
+    setSupplierName("");
     setValue("");
     setPeople([""]);
     setStartTime("");
@@ -187,31 +184,19 @@ export default function App() {
 
           <label className="field">
             <span>Supplier Name</span>
-            <select
-              value={supplierChoice}
-              onChange={(event) => setSupplierChoice(event.target.value)}
-            >
-              <option value="">Select supplier</option>
+            <input
+              type="text"
+              list="supplier-options"
+              value={supplierName}
+              onChange={(event) => setSupplierName(event.target.value)}
+              placeholder="Type or select supplier"
+            />
+            <datalist id="supplier-options">
               {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
+                <option key={supplier.id} value={supplier.name} />
               ))}
-              <option value={NEW_SUPPLIER_VALUE}>Add a new supplier...</option>
-            </select>
+            </datalist>
           </label>
-
-          {isAddingNewSupplier ? (
-            <label className="field">
-              <span>New Supplier Name</span>
-              <input
-                type="text"
-                value={newSupplierName}
-                onChange={(event) => setNewSupplierName(event.target.value)}
-                placeholder="Type supplier name"
-              />
-            </label>
-          ) : null}
 
           <label className="field">
             <span>Value</span>
