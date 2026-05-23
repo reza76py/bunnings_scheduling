@@ -24,6 +24,7 @@ DATABASES = {
 }
 
 CORS_ALLOWED_ORIGINS = [
+	"https://s.rezteche.com",
 	"http://s.rezteche.com",
 	"http://65.108.243.73",
 ]
