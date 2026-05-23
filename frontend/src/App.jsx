@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 const api = axios.create({
@@ -11,10 +11,10 @@ export default function App() {
   const [suppliers, setSuppliers] = useState([]);
   const [supplierChoice, setSupplierChoice] = useState("");
   const [newSupplierName, setNewSupplierName] = useState("");
+  const [storeNumber, setStoreNumber] = useState("");
   const [value, setValue] = useState("");
-  const [peopleWorking, setPeopleWorking] = useState("");
+  const [people, setPeople] = useState([""]);
   const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,14 +34,30 @@ export default function App() {
   }, []);
 
   const isAddingNewSupplier = supplierChoice === NEW_SUPPLIER_VALUE;
-  const canEndSession = Boolean(startTime) && !isSubmitting;
+  const isStarted = Boolean(startTime);
+  const buttonLabel = isStarted ? "END" : "START";
+  const buttonClassName = isStarted ? "primary-button end" : "primary-button start";
+  const cleanPeople = useMemo(
+    () => people.map((person) => person.trim()).filter(Boolean),
+    [people],
+  );
 
-  const handleStart = () => {
-    const now = new Date().toISOString();
-    setStartTime(now);
-    setEndTime("");
-    setSuccessMessage("");
-    setErrorMessage("");
+  const updatePerson = (index, nextValue) => {
+    setPeople((current) => current.map((person, i) => (i === index ? nextValue : person)));
+  };
+
+  const addPersonRow = () => {
+    setPeople((current) => [...current, ""]);
+  };
+
+  const removePersonRow = (index) => {
+    setPeople((current) => {
+      if (current.length === 1) {
+        return current;
+      }
+
+      return current.filter((_, i) => i !== index);
+    });
   };
 
   const ensureSupplierId = async () => {
@@ -54,10 +70,7 @@ export default function App() {
 
       const response = await api.post("/api/suppliers/", { name });
       const createdSupplier = response.data;
-      setSuppliers((currentSuppliers) => [
-        ...currentSuppliers,
-        createdSupplier,
-      ]);
+      setSuppliers((current) => [...current, createdSupplier]);
       setSupplierChoice(String(createdSupplier.id));
       setNewSupplierName("");
       return createdSupplier.id;
@@ -70,8 +83,20 @@ export default function App() {
     return supplierChoice;
   };
 
-  const handleEnd = async () => {
-    if (!startTime) {
+  const resetForm = () => {
+    setStoreNumber("");
+    setSupplierChoice("");
+    setNewSupplierName("");
+    setValue("");
+    setPeople([""]);
+    setStartTime("");
+  };
+
+  const handlePrimaryAction = async () => {
+    if (!isStarted) {
+      setSuccessMessage("");
+      setErrorMessage("");
+      setStartTime(new Date().toISOString());
       return;
     }
 
@@ -80,29 +105,34 @@ export default function App() {
     setErrorMessage("");
 
     try {
-      const finishedAt = new Date().toISOString();
-      setEndTime(finishedAt);
+      if (!storeNumber.trim()) {
+        throw new Error("Please enter a store number.");
+      }
+
+      if (!value) {
+        throw new Error("Please enter a value.");
+      }
+
+      if (!cleanPeople.length) {
+        throw new Error("Please add at least one person working.");
+      }
 
       const supplierId = await ensureSupplierId();
+      const endTime = new Date().toISOString();
 
       await api.post("/api/sessions/", {
         supplier: supplierId,
         value,
-        people_working: peopleWorking,
+        people_working: `Store ${storeNumber.trim()} | ${cleanPeople.join(", ")}`,
         start_time: startTime,
-        end_time: finishedAt,
+        end_time: endTime,
       });
 
-      setSuccessMessage("Session saved successfully.");
-      setValue("");
-      setPeopleWorking("");
-      setStartTime("");
-      setEndTime("");
+      setSuccessMessage("Session submitted successfully.");
+      resetForm();
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.detail ||
-          error?.message ||
-          "Unable to save session.",
+        error?.response?.data?.detail || error?.message || "Unable to save session.",
       );
     } finally {
       setIsSubmitting(false);
@@ -111,20 +141,28 @@ export default function App() {
 
   return (
     <main className="page-shell">
-      <section className="card">
-        <div className="header-copy">
-
-
-        </div>
+      <section className="session-card">
+        <p className="brand">RezTeche</p>
+        <h1>SSA Counting Session</h1>
 
         <div className="form-grid">
+          <label className="field">
+            <span>Store Number</span>
+            <input
+              type="text"
+              value={storeNumber}
+              onChange={(event) => setStoreNumber(event.target.value)}
+              placeholder="Type store number"
+            />
+          </label>
+
           <label className="field">
             <span>Supplier Name</span>
             <select
               value={supplierChoice}
               onChange={(event) => setSupplierChoice(event.target.value)}
             >
-              <option value="">Select a supplier</option>
+              <option value="">Select supplier</option>
               {suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
                   {supplier.name}
@@ -157,55 +195,57 @@ export default function App() {
             />
           </label>
 
-          <label className="field">
+          <div className="field">
             <span>People Working</span>
-            <input
-              type="text"
-              value={peopleWorking}
-              onChange={(event) => setPeopleWorking(event.target.value)}
-              placeholder="Names or crew count"
-            />
-          </label>
+            <div className="people-list">
+              {people.map((person, index) => (
+                <div className="person-row" key={`person-${index}`}>
+                  <input
+                    type="text"
+                    value={person}
+                    onChange={(event) => updatePerson(index, event.target.value)}
+                    placeholder={index === 0 ? "First person" : `Person ${index + 1}`}
+                  />
+                  {index === 0 ? (
+                    <button
+                      className="icon-button add"
+                      type="button"
+                      onClick={addPersonRow}
+                      aria-label="Add person"
+                    >
+                      +
+                    </button>
+                  ) : (
+                    <button
+                      className="icon-button remove"
+                      type="button"
+                      onClick={() => removePersonRow(index)}
+                      aria-label="Remove person"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="actions">
-          <button
-            className="button button-start"
-            type="button"
-            onClick={handleStart}
-            disabled={Boolean(startTime) && !endTime}
-          >
-            START
-          </button>
-          <button
-            className="button button-end"
-            type="button"
-            onClick={handleEnd}
-            disabled={!canEndSession}
-          >
-            END
-          </button>
-        </div>
+        <button
+          className={buttonClassName}
+          type="button"
+          onClick={handlePrimaryAction}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "SAVING..." : buttonLabel}
+        </button>
 
-        <div className="status-row">
-          <p>
-            <strong>Start:</strong>{" "}
-            {startTime
-              ? new Date(startTime).toLocaleString()
-              : "Not started yet"}
-          </p>
-          <p>
-            <strong>End:</strong>{" "}
-            {endTime ? new Date(endTime).toLocaleString() : "Not recorded yet"}
-          </p>
-        </div>
-
-        {successMessage ? (
-          <div className="alert alert-success">{successMessage}</div>
+        {isStarted ? (
+          <p className="time-note">Started at {new Date(startTime).toLocaleTimeString()}</p>
         ) : null}
-        {errorMessage ? (
-          <div className="alert alert-error">{errorMessage}</div>
-        ) : null}
+
+        {successMessage ? <div className="alert success">{successMessage}</div> : null}
+        {errorMessage ? <div className="alert error">{errorMessage}</div> : null}
       </section>
     </main>
   );
