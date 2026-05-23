@@ -22,5 +22,8 @@ jobs:
             source venv/bin/activate
             pip install -r backend/requirements.txt
             python backend/manage.py migrate --settings=config.settings.production
+            cd frontend && npm install && npm run build
+            cp -r dist/* /var/www/bunnings_scheduling/frontend/dist/ || true
+            cd /var/www/bunnings_scheduling
             pkill gunicorn || true
             gunicorn --chdir backend --bind 0.0.0.0:8000 config.wsgi:application --daemon --env DJANGO_SETTINGS_MODULE=config.settings.production
