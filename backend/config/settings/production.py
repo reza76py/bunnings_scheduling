@@ -9,6 +9,10 @@ from .base import *
 
 DEBUG = False
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
+CSRF_TRUSTED_ORIGINS = [
+	"https://s.rezteche.com",
+	"http://s.rezteche.com",
+]
 CORS_ALLOW_ALL_ORIGINS = False
 
 DATABASES = {
