@@ -36,14 +36,18 @@ export default function App() {
   const isAddingNewSupplier = supplierChoice === NEW_SUPPLIER_VALUE;
   const isStarted = Boolean(startTime);
   const buttonLabel = isStarted ? "END" : "START";
-  const buttonClassName = isStarted ? "primary-button end" : "primary-button start";
+  const buttonClassName = isStarted
+    ? "primary-button end"
+    : "primary-button start";
   const cleanPeople = useMemo(
     () => people.map((person) => person.trim()).filter(Boolean),
     [people],
   );
 
   const updatePerson = (index, nextValue) => {
-    setPeople((current) => current.map((person, i) => (i === index ? nextValue : person)));
+    setPeople((current) =>
+      current.map((person, i) => (i === index ? nextValue : person)),
+    );
   };
 
   const addPersonRow = () => {
@@ -94,9 +98,23 @@ export default function App() {
 
   const handlePrimaryAction = async () => {
     if (!isStarted) {
+      setIsSubmitting(true);
       setSuccessMessage("");
       setErrorMessage("");
-      setStartTime(new Date().toISOString());
+
+      try {
+        await ensureSupplierId();
+        setStartTime(new Date().toISOString());
+      } catch (error) {
+        setErrorMessage(
+          error?.response?.data?.detail ||
+            error?.message ||
+            "Unable to save supplier.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+
       return;
     }
 
@@ -128,11 +146,23 @@ export default function App() {
         end_time: endTime,
       });
 
-      setSuccessMessage("Session submitted successfully.");
+      const durationMs = Math.max(
+        0,
+        new Date(endTime).getTime() - new Date(startTime).getTime(),
+      );
+      const totalSeconds = Math.floor(durationMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+
+      setSuccessMessage(
+        `✓ Done! Total time: ${minutes} minutes ${seconds} seconds`,
+      );
       resetForm();
     } catch (error) {
       setErrorMessage(
-        error?.response?.data?.detail || error?.message || "Unable to save session.",
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to save session.",
       );
     } finally {
       setIsSubmitting(false);
@@ -142,8 +172,7 @@ export default function App() {
   return (
     <main className="page-shell">
       <section className="session-card">
-        <p className="brand">RezTeche</p>
-        <h1>SSA Counting Session</h1>
+        <h1>Counting</h1>
 
         <div className="form-grid">
           <label className="field">
@@ -203,8 +232,12 @@ export default function App() {
                   <input
                     type="text"
                     value={person}
-                    onChange={(event) => updatePerson(index, event.target.value)}
-                    placeholder={index === 0 ? "First person" : `Person ${index + 1}`}
+                    onChange={(event) =>
+                      updatePerson(index, event.target.value)
+                    }
+                    placeholder={
+                      index === 0 ? "First person" : `Person ${index + 1}`
+                    }
                   />
                   {index === 0 ? (
                     <button
@@ -241,11 +274,17 @@ export default function App() {
         </button>
 
         {isStarted ? (
-          <p className="time-note">Started at {new Date(startTime).toLocaleTimeString()}</p>
+          <p className="time-note">
+            Started at {new Date(startTime).toLocaleTimeString()}
+          </p>
         ) : null}
 
-        {successMessage ? <div className="alert success">{successMessage}</div> : null}
-        {errorMessage ? <div className="alert error">{errorMessage}</div> : null}
+        {successMessage ? (
+          <div className="alert success done-box">{successMessage}</div>
+        ) : null}
+        {errorMessage ? (
+          <div className="alert error">{errorMessage}</div>
+        ) : null}
       </section>
     </main>
   );

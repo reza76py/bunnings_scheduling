@@ -28,8 +28,16 @@ body,
 
 body {
   background:
-    radial-gradient(circle at 10% -20%, rgba(79, 142, 247, 0.22), transparent 45%),
-    radial-gradient(circle at 100% 0%, rgba(108, 63, 232, 0.25), transparent 38%),
+    radial-gradient(
+      circle at 10% -20%,
+      rgba(79, 142, 247, 0.22),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(108, 63, 232, 0.25),
+      transparent 38%
+    ),
     var(--bg);
   color: var(--text-main);
 }
@@ -153,12 +161,16 @@ h1 {
   font-weight: 800;
   letter-spacing: 0.08em;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.2s ease;
+  transition:
+    transform 0.12s ease,
+    opacity 0.2s ease;
 }
 
 .primary-button.start {
   background: linear-gradient(135deg, var(--primary), #7f5df7);
-  box-shadow: 0 0 0 1px rgba(108, 63, 232, 0.5), 0 0 26px rgba(108, 63, 232, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(108, 63, 232, 0.5),
+    0 0 26px rgba(108, 63, 232, 0.4);
 }
 
 .primary-button.end {
@@ -193,6 +205,12 @@ h1 {
   color: var(--success);
   background: rgba(46, 204, 113, 0.12);
   border-color: rgba(46, 204, 113, 0.35);
+}
+
+.done-box {
+  box-shadow:
+    0 0 0 1px rgba(46, 204, 113, 0.25),
+    0 0 24px rgba(46, 204, 113, 0.18);
 }
 
 .alert.error {
