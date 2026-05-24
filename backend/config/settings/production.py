@@ -1,18 +1,13 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-load_dotenv(BASE_DIR / '.env.production')
 
 from .base import *
 
-DEBUG = False
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
-CSRF_TRUSTED_ORIGINS = [
-	"https://s.rezteche.com",
-	"http://s.rezteche.com",
-]
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
 CORS_ALLOW_ALL_ORIGINS = False
 
 DATABASES = {
@@ -27,8 +22,4 @@ DATABASES = {
 	}
 }
 
-CORS_ALLOWED_ORIGINS = [
-	"https://s.rezteche.com",
-	"http://s.rezteche.com",
-	"http://65.108.243.73",
-]
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()]
