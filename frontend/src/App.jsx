@@ -10,7 +10,8 @@ export default function App() {
   const [supplierName, setSupplierName] = useState("");
   const [storeNumber, setStoreNumber] = useState("");
   const [value, setValue] = useState("");
-  const [people, setPeople] = useState([""]);
+  const [personInput, setPersonInput] = useState("");
+  const [people, setPeople] = useState([]);
   const [startTime, setStartTime] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -40,24 +41,18 @@ export default function App() {
     [people],
   );
 
-  const updatePerson = (index, nextValue) => {
-    setPeople((current) =>
-      current.map((person, i) => (i === index ? nextValue : person)),
-    );
-  };
+  const addPerson = () => {
+    const nextPerson = personInput.trim();
+    if (!nextPerson) {
+      return;
+    }
 
-  const addPersonRow = () => {
-    setPeople((current) => [...current, ""]);
+    setPeople((current) => [...current, nextPerson]);
+    setPersonInput("");
   };
 
   const removePersonRow = (index) => {
-    setPeople((current) => {
-      if (current.length === 1) {
-        return current;
-      }
-
-      return current.filter((_, i) => i !== index);
-    });
+    setPeople((current) => current.filter((_, i) => i !== index));
   };
 
   const ensureSupplierId = async () => {
@@ -89,7 +84,8 @@ export default function App() {
     setStoreNumber("");
     setSupplierName("");
     setValue("");
-    setPeople([""]);
+    setPersonInput("");
+    setPeople([]);
     setStartTime("");
   };
 
@@ -173,7 +169,7 @@ export default function App() {
 
         <div className="form-grid">
           <label className="field">
-            <span>Store Number</span>
+            
             <input
               type="text"
               value={storeNumber}
@@ -183,7 +179,7 @@ export default function App() {
           </label>
 
           <label className="field">
-            <span>Supplier Name</span>
+            
             <input
               type="text"
               list="supplier-options"
@@ -199,50 +195,46 @@ export default function App() {
           </label>
 
           <label className="field">
-            <span>Value ($)</span>
+          
             <input
               type="number"
               value={value}
               onChange={(event) => setValue(event.target.value)}
-              placeholder="Enter value"
+              placeholder="Enter value ($)"
               inputMode="decimal"
             />
           </label>
 
           <div className="field">
-            <span>People Working</span>
+           
             <div className="people-list">
+              <div className="person-row">
+                <input
+                  type="text"
+                  value={personInput}
+                  onChange={(event) => setPersonInput(event.target.value)}
+                  placeholder="Who are working on ..."
+                />
+                <button
+                  className="icon-button add"
+                  type="button"
+                  onClick={addPerson}
+                  aria-label="Add person"
+                >
+                  +
+                </button>
+              </div>
               {people.map((person, index) => (
                 <div className="person-row" key={`person-${index}`}>
-                  <input
-                    type="text"
-                    value={person}
-                    onChange={(event) =>
-                      updatePerson(index, event.target.value)
-                    }
-                    placeholder={
-                      index === 0 ? "First person" : `Person ${index + 1}`
-                    }
-                  />
-                  {index === 0 ? (
-                    <button
-                      className="icon-button add"
-                      type="button"
-                      onClick={addPersonRow}
-                      aria-label="Add person"
-                    >
-                      +
-                    </button>
-                  ) : (
-                    <button
-                      className="icon-button remove"
-                      type="button"
-                      onClick={() => removePersonRow(index)}
-                      aria-label="Remove person"
-                    >
-                      ×
-                    </button>
-                  )}
+                  <input type="text" value={person} readOnly />
+                  <button
+                    className="icon-button remove"
+                    type="button"
+                    onClick={() => removePersonRow(index)}
+                    aria-label="Remove person"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </div>

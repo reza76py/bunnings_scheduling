@@ -10,7 +10,11 @@ services:
     volumes:
       - mysql_prod_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${DB_PASSWORD} --silent"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p$${DB_PASSWORD} --silent",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -30,12 +34,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+    command:
+      [
+        "gunicorn",
+        "config.wsgi:application",
+        "--bind",
+        "0.0.0.0:8000",
+        "--workers",
+        "3",
+      ]
     volumes:
       - backend_static:/app/backend/staticfiles
       - backend_media:/app/backend/media
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import socket; s=socket.create_connection(('127.0.0.1', 8000), 2); s.close()\""]
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import socket; s=socket.create_connection((''127.0.0.1'', 8000), 2); s.close()"',
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
