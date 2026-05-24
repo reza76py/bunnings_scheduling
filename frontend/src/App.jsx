@@ -199,7 +199,7 @@ export default function App() {
           </label>
 
           <label className="field">
-            <span>Value</span>
+            <span>Value $</span>
             <input
               type="number"
               value={value}
