@@ -5,9 +5,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 from .base import *
 
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+SECRET_KEY = os.getenv('SECRET_KEY', 'change-me-in-env')
+DEBUG = False
 ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
-CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
+CSRF_TRUSTED_ORIGINS = ['https://s.rezteche.com']
+CORS_ALLOWED_ORIGINS = ['https://s.rezteche.com']
 CORS_ALLOW_ALL_ORIGINS = False
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -24,4 +26,5 @@ DATABASES = {
 	}
 }
 
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()]
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'backend', 'staticfiles')
