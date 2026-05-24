@@ -10,8 +10,10 @@ export default function App() {
   const [supplierName, setSupplierName] = useState("");
   const [storeNumber, setStoreNumber] = useState("");
   const [value, setValue] = useState("");
+  const [sessionId, setSessionId] = useState(null);
   const [personInput, setPersonInput] = useState("");
-  const [people, setPeople] = useState([]);
+  const [pendingPeople, setPendingPeople] = useState([]);
+  const [participants, setParticipants] = useState([]);
   const [startTime, setStartTime] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -36,23 +38,103 @@ export default function App() {
   const buttonClassName = isStarted
     ? "primary-button end"
     : "primary-button start";
-  const cleanPeople = useMemo(
-    () => people.map((person) => person.trim()).filter(Boolean),
-    [people],
-  );
+  const cleanPeople = useMemo(() => {
+    if (!isStarted) {
+      return pendingPeople.map((name) => name.trim()).filter(Boolean);
+    }
 
-  const addPerson = () => {
+    return participants
+      .filter((participant) => !participant.left_at)
+      .map((participant) => participant.name.trim())
+      .filter(Boolean);
+  }, [isStarted, pendingPeople, participants]);
+
+  const displayParticipants = useMemo(() => {
+    if (!isStarted) {
+      return [];
+    }
+
+    const latestByName = new Map();
+    participants.forEach((participant) => {
+      const key = participant.name.trim().toLowerCase();
+      latestByName.set(key, participant);
+    });
+
+    return Array.from(latestByName.values());
+  }, [isStarted, participants]);
+
+  const addPerson = async () => {
     const nextPerson = personInput.trim();
     if (!nextPerson) {
       return;
     }
 
-    setPeople((current) => [...current, nextPerson]);
-    setPersonInput("");
+    if (!isStarted) {
+      setErrorMessage("");
+      setPendingPeople((current) => [...current, nextPerson]);
+      setPersonInput("");
+      return;
+    }
+
+    if (!sessionId) {
+      setErrorMessage("Session not found. Please press START first.");
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      const response = await api.post("/api/participants/", {
+        session: sessionId,
+        name: nextPerson,
+        joined_at: new Date().toISOString(),
+      });
+      setParticipants((current) => [...current, response.data]);
+      setPersonInput("");
+    } catch (error) {
+      setErrorMessage(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to add participant.",
+      );
+    }
   };
 
-  const removePersonRow = (index) => {
-    setPeople((current) => current.filter((_, i) => i !== index));
+  const leaveParticipant = async (participantId) => {
+    try {
+      setErrorMessage("");
+      const response = await api.patch(
+        `/api/participants/${participantId}/leave/`,
+      );
+      const updated = response.data;
+      setParticipants((current) =>
+        current.map((participant) =>
+          participant.id === updated.id ? updated : participant,
+        ),
+      );
+    } catch (error) {
+      setErrorMessage(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to leave participant.",
+      );
+    }
+  };
+
+  const rejoinParticipant = async (participantId) => {
+    try {
+      setErrorMessage("");
+      const response = await api.patch(
+        `/api/participants/${participantId}/rejoin/`,
+      );
+      const rejoined = response.data;
+      setParticipants((current) => [...current, rejoined]);
+    } catch (error) {
+      setErrorMessage(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to rejoin participant.",
+      );
+    }
   };
 
   const ensureSupplierId = async () => {
@@ -84,8 +166,10 @@ export default function App() {
     setStoreNumber("");
     setSupplierName("");
     setValue("");
+    setSessionId(null);
     setPersonInput("");
-    setPeople([]);
+    setPendingPeople([]);
+    setParticipants([]);
     setStartTime("");
   };
 
@@ -96,8 +180,45 @@ export default function App() {
       setErrorMessage("");
 
       try {
-        await ensureSupplierId();
-        setStartTime(new Date().toISOString());
+        if (!storeNumber.trim()) {
+          throw new Error("Please enter a store number.");
+        }
+
+        if (!value) {
+          throw new Error("Please enter a value.");
+        }
+
+        const supplierId = await ensureSupplierId();
+        const startedAt = new Date().toISOString();
+        const finalPeople = personInput.trim()
+          ? [...cleanPeople, personInput.trim()]
+          : cleanPeople;
+
+        const response = await api.post("/api/sessions/start/", {
+          supplier: supplierId,
+          value,
+          people_working: `Store ${storeNumber.trim()} | ${finalPeople.join(", ")}`,
+        });
+
+        const createdSessionId = response.data.session_id;
+        if (pendingPeople.length) {
+          const participantResponses = await Promise.all(
+            pendingPeople.map((name) =>
+              api.post("/api/participants/", {
+                session: createdSessionId,
+                name,
+                joined_at: startedAt,
+              }),
+            ),
+          );
+          setParticipants(participantResponses.map((item) => item.data));
+        } else {
+          setParticipants([]);
+        }
+
+        setPendingPeople([]);
+        setSessionId(createdSessionId);
+        setStartTime(startedAt);
       } catch (error) {
         setErrorMessage(
           error?.response?.data?.detail ||
@@ -133,8 +254,12 @@ export default function App() {
 
       const supplierId = await ensureSupplierId();
       const endTime = new Date().toISOString();
+      if (!sessionId) {
+        throw new Error("Session not found. Please press START first.");
+      }
 
       await api.post("/api/sessions/", {
+        session_id: sessionId,
         supplier: supplierId,
         value,
         people_working: `Store ${storeNumber.trim()} | ${finalPeople.join(", ")}`,
@@ -172,7 +297,6 @@ export default function App() {
 
         <div className="form-grid">
           <label className="field">
-            
             <input
               type="text"
               value={storeNumber}
@@ -182,7 +306,6 @@ export default function App() {
           </label>
 
           <label className="field">
-            
             <input
               type="text"
               list="supplier-options"
@@ -198,7 +321,6 @@ export default function App() {
           </label>
 
           <label className="field">
-          
             <input
               type="number"
               value={value}
@@ -209,7 +331,6 @@ export default function App() {
           </label>
 
           <div className="field">
-           
             <div className="people-list">
               <div className="person-row">
                 <input
@@ -227,19 +348,50 @@ export default function App() {
                   +
                 </button>
               </div>
-              {people.map((person, index) => (
-                <div className="person-row" key={`person-${index}`}>
-                  <input type="text" value={person} readOnly />
-                  <button
-                    className="icon-button remove"
-                    type="button"
-                    onClick={() => removePersonRow(index)}
-                    aria-label="Remove person"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {!isStarted
+                ? pendingPeople.map((name, index) => (
+                    <div className="person-row" key={`pending-person-${index}`}>
+                      <input type="text" value={name} readOnly />
+                    </div>
+                  ))
+                : displayParticipants.map((participant) => (
+                    <div
+                      className="person-row"
+                      key={`participant-${participant.id}`}
+                    >
+                      <input type="text" value={participant.name} readOnly />
+                      <button
+                        className="icon-button remove"
+                        type="button"
+                        onClick={() =>
+                          participant.left_at
+                            ? rejoinParticipant(participant.id)
+                            : leaveParticipant(participant.id)
+                        }
+                        aria-label={
+                          participant.left_at ? "Rejoin person" : "Leave person"
+                        }
+                        style={{
+                          width: "52px",
+                          minHeight: "52px",
+                          borderRadius: "12px",
+                          fontSize: "0.6rem",
+                          lineHeight: 1,
+                          overflow: "hidden",
+                          padding: 0,
+                          color: "#ffffff",
+                          backgroundColor: participant.left_at
+                            ? "#e05252"
+                            : "#4caf7d",
+                          borderColor: participant.left_at
+                            ? "#d14b4b"
+                            : "#3f9f6f",
+                        }}
+                      >
+                        {participant.left_at ? "✗" : "✓"}
+                      </button>
+                    </div>
+                  ))}
             </div>
           </div>
         </div>
