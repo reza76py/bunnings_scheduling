@@ -124,7 +124,10 @@ export default function App() {
         throw new Error("Please enter a value.");
       }
 
-      if (!cleanPeople.length) {
+      const finalPeople = personInput.trim()
+        ? [...cleanPeople, personInput.trim()]
+        : cleanPeople;
+      if (!finalPeople.length) {
         throw new Error("Please add at least one person working.");
       }
 
@@ -134,7 +137,7 @@ export default function App() {
       await api.post("/api/sessions/", {
         supplier: supplierId,
         value,
-        people_working: `Store ${storeNumber.trim()} | ${cleanPeople.join(", ")}`,
+        people_working: `Store ${storeNumber.trim()} | ${finalPeople.join(", ")}`,
         start_time: startTime,
         end_time: endTime,
       });
