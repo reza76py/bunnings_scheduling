@@ -169,7 +169,7 @@ export default function App() {
   return (
     <main className="page-shell">
       <section className="session-card">
-        <h1>Counting</h1>
+        <h3>Hi! Simply record when you start and finish the counting.</h3>
 
         <div className="form-grid">
           <label className="field">
