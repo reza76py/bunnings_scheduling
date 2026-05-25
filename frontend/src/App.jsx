@@ -207,6 +207,13 @@ export default function App() {
     window.location.reload();
   };
 
+  const handleStoreNumberChange = (event) => {
+    const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 4);
+    setStoreNumber(digitsOnly);
+  };
+
+  const hasValidStoreNumber = /^\d{4}$/.test(storeNumber);
+
   const handlePrimaryAction = async () => {
     if (!isStarted) {
       setIsSubmitting(true);
@@ -214,8 +221,8 @@ export default function App() {
       setErrorMessage("");
 
       try {
-        if (!storeNumber.trim()) {
-          throw new Error("Please enter a store number.");
+        if (!hasValidStoreNumber) {
+          throw new Error("Please enter a valid 4-digit store number.");
         }
 
         if (!value) {
@@ -271,8 +278,8 @@ export default function App() {
     setErrorMessage("");
 
     try {
-      if (!storeNumber.trim()) {
-        throw new Error("Please enter a store number.");
+      if (!hasValidStoreNumber) {
+        throw new Error("Please enter a valid 4-digit store number.");
       }
 
       if (!value) {
@@ -333,7 +340,9 @@ export default function App() {
             <input
               type="text"
               value={storeNumber}
-              onChange={(event) => setStoreNumber(event.target.value)}
+              onChange={handleStoreNumberChange}
+              inputMode="numeric"
+              maxLength={4}
               placeholder="Type store number"
             />
           </label>
