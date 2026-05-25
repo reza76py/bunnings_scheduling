@@ -173,6 +173,40 @@ export default function App() {
     setStartTime("");
   };
 
+  const handleCancelSession = async () => {
+    if (!sessionId || !isStarted) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Cancel this session? This permanently deletes it.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      await api.delete(`/api/sessions/${sessionId}/`);
+      resetForm();
+    } catch (error) {
+      setErrorMessage(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to cancel session.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleNext = () => {
+    window.location.reload();
+  };
+
   const handlePrimaryAction = async () => {
     if (!isStarted) {
       setIsSubmitting(true);
@@ -278,7 +312,6 @@ export default function App() {
       setSuccessMessage(
         `✓ Done! Total time: ${minutes} minutes ${seconds} seconds`,
       );
-      resetForm();
     } catch (error) {
       setErrorMessage(
         error?.response?.data?.detail ||
@@ -396,14 +429,26 @@ export default function App() {
           </div>
         </div>
 
-        <button
-          className={buttonClassName}
-          type="button"
-          onClick={handlePrimaryAction}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "SAVING..." : buttonLabel}
-        </button>
+        <div className="action-row">
+          <button
+            className={buttonClassName}
+            type="button"
+            onClick={handlePrimaryAction}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "SAVING..." : buttonLabel}
+          </button>
+          {isStarted ? (
+            <button
+              className="secondary-button cancel"
+              type="button"
+              onClick={handleCancelSession}
+              disabled={isSubmitting}
+            >
+              CANCEL SESSION
+            </button>
+          ) : null}
+        </div>
 
         {isStarted ? (
           <p className="time-note">
@@ -412,7 +457,16 @@ export default function App() {
         ) : null}
 
         {successMessage ? (
-          <div className="alert success done-box">{successMessage}</div>
+          <>
+            <div className="alert success done-box">{successMessage}</div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleNext}
+            >
+              NEXT
+            </button>
+          </>
         ) : null}
         {errorMessage ? (
           <div className="alert error">{errorMessage}</div>
