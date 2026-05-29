@@ -242,9 +242,17 @@ export default function App() {
         });
 
         const createdSessionId = response.data.session_id;
-        if (pendingPeople.length) {
+        const currentPerson = personInput.trim();
+        const participantsToSave = currentPerson
+          ? [...pendingPeople, currentPerson]
+          : pendingPeople;
+        if (currentPerson) {
+          setPersonInput("");
+        }
+
+        if (participantsToSave.length) {
           const participantResponses = await Promise.all(
-            pendingPeople.map((name) =>
+            participantsToSave.map((name) =>
               api.post("/api/participants/", {
                 session: createdSessionId,
                 name,
@@ -333,6 +341,20 @@ export default function App() {
   return (
     <main className="page-shell">
       <section className="session-card">
+        <div style={{ marginBottom: "10px" }}>
+          <a
+            href="/forecast"
+            style={{
+              color: "var(--secondary)",
+              textDecoration: "none",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+            }}
+          >
+            Open Forecast →
+          </a>
+        </div>
+
         <h3>Hi! Simply record when you start and finish the counting.</h3>
 
         <div className="form-grid">
