@@ -21,26 +21,38 @@ export default function Forecast() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+
+  // Load suppliers on mount
   useEffect(() => {
-    const loadData = async () => {
+    const loadSuppliers = async () => {
       try {
-        const [suppliersResponse, peopleResponse] = await Promise.all([
-          api.get("/api/forecast/suppliers/"),
-          api.get("/api/forecast/people/"),
-        ]);
-        setSuppliers(
-          Array.isArray(suppliersResponse.data) ? suppliersResponse.data : [],
-        );
-        setPeopleOptions(
-          Array.isArray(peopleResponse.data) ? peopleResponse.data : [],
-        );
+        const response = await api.get("/api/forecast/suppliers/");
+        setSuppliers(Array.isArray(response.data) ? response.data : []);
       } catch {
-        setErrorMessage("Unable to load forecast inputs right now.");
+        setSuppliers([]);
       }
     };
-
-    loadData();
+    loadSuppliers();
   }, []);
+
+  // Load people when storeNumber changes
+  useEffect(() => {
+    const fetchPeople = async () => {
+      try {
+        let url = "/api/forecast/people/";
+        if (/^\d{4}$/.test(storeNumber)) {
+          url += `?store=${storeNumber}`;
+        }
+        const response = await api.get(url);
+        setPeopleOptions(Array.isArray(response.data) ? response.data : []);
+        setSelectedPeople({}); // Clear selection when store changes
+      } catch {
+        setPeopleOptions([]);
+        setSelectedPeople({});
+      }
+    };
+    fetchPeople();
+  }, [storeNumber]);
 
   const chosenPeople = useMemo(
     () =>
@@ -148,42 +160,50 @@ export default function Forecast() {
 
           <div className="field">
             <span>People</span>
-            <div
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "12px",
-                background: "#0f1224",
-                padding: "10px 12px",
-                maxHeight: "180px",
-                overflowY: "auto",
-                display: "grid",
-                gap: "8px",
-              }}
-            >
-              {peopleOptions.length ? (
-                peopleOptions.map((name) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {(peopleOptions && peopleOptions.length) ? (
+                peopleOptions.map((person) => (
                   <label
-                    key={name}
+                    key={person}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      color: "var(--text-main)",
-                      fontSize: "0.95rem",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      cursor: 'pointer',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      background: selectedPeople[person]
+                        ? 'rgba(79, 142, 247, 0.15)'
+                        : 'transparent',
+                      border: '1px solid',
+                      borderColor: selectedPeople[person]
+                        ? 'rgba(79, 142, 247, 0.5)'
+                        : 'var(--border)',
                     }}
                   >
                     <input
                       type="checkbox"
-                      checked={Boolean(selectedPeople[name])}
-                      onChange={() => togglePerson(name)}
+                      checked={!!selectedPeople[person]}
+                      onChange={() => togglePerson(person)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        accentColor: 'var(--secondary)',
+                        flexShrink: 0,
+                      }}
                     />
-                    {name}
+                    <span style={{
+                      color: 'var(--text-main)',
+                      fontSize: '0.95rem',
+                      fontWeight: '500',
+                    }}>
+                      {person}
+                    </span>
                   </label>
                 ))
               ) : (
-                <span
-                  style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}
-                >
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   No people found yet.
                 </span>
               )}

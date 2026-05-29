@@ -31,6 +31,14 @@ def _build_session_feature(session: CountingSession) -> dict:
 		for participant in session.participants.all()
 		if participant.name and participant.name.strip()
 	}
+
+	team_size = len(participant_names)
+	feature["team_size"] = team_size
+	feature["team_size_1"] = 1 if team_size == 1 else 0
+	feature["team_size_2"] = 1 if team_size == 2 else 0
+	feature["team_size_3"] = 1 if team_size == 3 else 0
+	feature["team_size_4plus"] = 1 if team_size >= 4 else 0
+
 	for name in participant_names:
 		feature[f"person_{name}_{supplier_name.lower()}"] = 1
 
@@ -42,7 +50,14 @@ def _build_request_feature(supplier_name: str, store_number: str, people: list[s
 		"supplier": supplier_name,
 		"store_number": store_number,
 	}
-	for person in {name.strip().lower() for name in people if isinstance(name, str) and name.strip()}:
+	people_clean = [name.strip().lower() for name in people if isinstance(name, str) and name.strip()]
+	team_size = len(people_clean)
+	feature["team_size"] = team_size
+	feature["team_size_1"] = 1 if team_size == 1 else 0
+	feature["team_size_2"] = 1 if team_size == 2 else 0
+	feature["team_size_3"] = 1 if team_size == 3 else 0
+	feature["team_size_4plus"] = 1 if team_size >= 4 else 0
+	for person in set(people_clean):
 		feature[f"person_{person}_{supplier_name.lower()}"] = 1
 	return feature
 
@@ -158,12 +173,18 @@ def predict_duration(request):
 
 @api_view(["GET"])
 def people_list(request):
-	names = {
-		name.strip()
-		for name in SessionParticipant.objects.values_list("name", flat=True)
-		if name and name.strip()
-	}
-	return Response(sorted(names, key=str.lower))
+	store = request.GET.get("store")
+	if store and len(store) == 4 and store.isdigit():
+		session_ids = CountingSession.objects.filter(
+			people_working__icontains=f"Store {store}"
+		).values_list('id', flat=True)
+		names = SessionParticipant.objects.filter(
+			session_id__in=session_ids
+		).values_list('name', flat=True)
+	else:
+		names = SessionParticipant.objects.values_list('name', flat=True)
+	unique_names = {name.strip() for name in names if name and name.strip()}
+	return Response(sorted(unique_names, key=str.lower))
 
 
 @api_view(["GET"])

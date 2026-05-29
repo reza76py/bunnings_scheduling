@@ -68,13 +68,13 @@ def random_value():
     return Decimal(f"{amount:.2f}")
 
 def main():
-    print("Seeding 200 realistic sessions using only existing suppliers...")
+    print("Seeding 500 realistic sessions using only existing suppliers...")
     suppliers = list(Supplier.objects.all())
     supplier_names = [s.name for s in suppliers]
     print(f"Found {len(suppliers)} suppliers: {supplier_names}")
     supplier_map = {s.name: s for s in suppliers}
     sessions_created = 0
-    for i in range(200):
+    for i in range(500):
         supplier = random.choice(suppliers)
         supplier_name = supplier.name
         supplier_avg = SUPPLIER_AVERAGES.get(supplier_name)
@@ -110,7 +110,7 @@ def main():
             ) for person in team
         ])
         sessions_created += 1
-        print(f"[{i+1:03}/200] {supplier_name} team={team} duration={duration}m value=${value}")
+        print(f"[{i+1:03}/500] {supplier_name} team={team} duration={duration}m value=${value}")
     print(f"Done. Created {sessions_created} sessions.")
 
 if __name__ == "__main__":
