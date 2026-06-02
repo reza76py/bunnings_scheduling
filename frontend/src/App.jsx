@@ -553,7 +553,7 @@ export default function App() {
         ) : (
           /* ── NORMAL FORM ── */
           <>
-            <div style={{ marginBottom: "10px" }}>
+            {/* <div style={{ marginBottom: "10px" }}>
               <a
                 href="/forecast"
                 style={{
@@ -565,7 +565,7 @@ export default function App() {
               >
                 Open Forecast →
               </a>
-            </div>
+            </div> */}
 
             <h3>Hi! Simply record when you start and finish the counting.</h3>
 
