@@ -8,13 +8,17 @@ const api = axios.create({
 export default function App() {
   const [suppliers, setSuppliers] = useState([]);
   const [supplierName, setSupplierName] = useState("");
-  const [storeNumber, setStoreNumber] = useState("");
+  const [storeNumber, setStoreNumber] = useState(
+    () => localStorage.getItem("lastStoreNumber") || "",
+  );
   const [value, setValue] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [personInput, setPersonInput] = useState("");
   const [pendingPeople, setPendingPeople] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,6 +175,16 @@ export default function App() {
     setPendingPeople([]);
     setParticipants([]);
     setStartTime("");
+    setEndTime("");
+    setShowConfirm(false);
+  };
+
+  const handleEndClick = () => {
+    setShowConfirm(true);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirm(false);
   };
 
   const handleCancelSession = async () => {
@@ -210,6 +224,9 @@ export default function App() {
   const handleStoreNumberChange = (event) => {
     const digitsOnly = event.target.value.replace(/\D/g, "").slice(0, 4);
     setStoreNumber(digitsOnly);
+    if (digitsOnly.length === 4) {
+      localStorage.setItem("lastStoreNumber", digitsOnly);
+    }
   };
 
   const hasValidStoreNumber = /^\d{4}$/.test(storeNumber);
@@ -303,6 +320,7 @@ export default function App() {
 
       const supplierId = await ensureSupplierId();
       const endTime = new Date().toISOString();
+      setEndTime(new Date().toISOString());
       if (!sessionId) {
         throw new Error("Session not found. Please press START first.");
       }
@@ -341,155 +359,189 @@ export default function App() {
   return (
     <main className="page-shell">
       <section className="session-card">
-        <div style={{ marginBottom: "10px" }}>
-          <a
-            href="/forecast"
-            style={{
-              color: "var(--secondary)",
-              textDecoration: "none",
-              fontSize: "0.9rem",
-              fontWeight: 700,
-            }}
+        {successMessage ? (
+          /* ── SUCCESS SUMMARY SCREEN ── */
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
           >
-            Open Forecast →
-          </a>
-        </div>
+            <div className="alert success done-box">{successMessage}</div>
 
-        <h3>Hi! Simply record when you start and finish the counting.</h3>
-
-        <div className="form-grid">
-          <label className="field">
-            <input
-              type="text"
-              value={storeNumber}
-              onChange={handleStoreNumberChange}
-              inputMode="numeric"
-              maxLength={4}
-              placeholder="Type store number"
-            />
-          </label>
-
-          <label className="field">
-            <input
-              type="text"
-              list="supplier-options"
-              value={supplierName}
-              onChange={(event) => setSupplierName(event.target.value)}
-              placeholder="Type or select supplier"
-            />
-            <datalist id="supplier-options">
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.name} />
-              ))}
-            </datalist>
-          </label>
-
-          <label className="field">
-            <input
-              type="number"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              placeholder="Enter value ($)"
-              inputMode="decimal"
-            />
-          </label>
-
-          <div className="field">
-            <div className="people-list">
-              <div className="person-row">
-                <input
-                  type="text"
-                  value={personInput}
-                  onChange={(event) => setPersonInput(event.target.value)}
-                  placeholder="Who are working on ..."
-                />
-                <button
-                  className="icon-button add"
-                  type="button"
-                  onClick={addPerson}
-                  aria-label="Add person"
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "6px" }}
+            >
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "baseline" }}
+              >
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.8rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    minWidth: "90px",
+                  }}
                 >
-                  +
-                </button>
+                  Store
+                </span>
+                <span
+                  style={{
+                    color: "var(--text-main)",
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {storeNumber}
+                </span>
               </div>
-              {!isStarted
-                ? pendingPeople.map((name, index) => (
-                    <div className="person-row" key={`pending-person-${index}`}>
-                      <input type="text" value={name} readOnly />
-                    </div>
-                  ))
-                : displayParticipants.map((participant) => (
-                    <div
-                      className="person-row"
-                      key={`participant-${participant.id}`}
-                    >
-                      <input type="text" value={participant.name} readOnly />
-                      <button
-                        className="icon-button remove"
-                        type="button"
-                        onClick={() =>
-                          participant.left_at
-                            ? rejoinParticipant(participant.id)
-                            : leaveParticipant(participant.id)
-                        }
-                        aria-label={
-                          participant.left_at ? "Rejoin person" : "Leave person"
-                        }
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "baseline" }}
+              >
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.8rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    minWidth: "90px",
+                  }}
+                >
+                  Supplier
+                </span>
+                <span
+                  style={{
+                    color: "var(--text-main)",
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {supplierName}
+                </span>
+              </div>
+              <div
+                style={{ display: "flex", gap: "8px", alignItems: "baseline" }}
+              >
+                <span
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: "0.8rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    minWidth: "90px",
+                  }}
+                >
+                  Value
+                </span>
+                <span
+                  style={{
+                    color: "var(--text-main)",
+                    fontWeight: 600,
+                    fontSize: "1rem",
+                  }}
+                >
+                  ${value}
+                </span>
+              </div>
+            </div>
+
+            <div className="field">
+              <span
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.8rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                People
+              </span>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                  padding: "4px 0",
+                }}
+              >
+                {(() => {
+                  const sessionEnd = endTime ? new Date(endTime) : new Date();
+                  const byName = {};
+                  participants.forEach((p) => {
+                    const key = p.name.trim().toLowerCase();
+                    if (!byName[key])
+                      byName[key] = { name: p.name.trim(), intervals: [] };
+                    byName[key].intervals.push({
+                      joined_at: p.joined_at,
+                      left_at: p.left_at,
+                    });
+                  });
+                  return Object.values(byName).map(({ name, intervals }) => {
+                    let totalMs = 0;
+                    intervals.forEach(({ joined_at, left_at }) => {
+                      const start = new Date(joined_at);
+                      const end = left_at ? new Date(left_at) : sessionEnd;
+                      totalMs += Math.max(0, end - start);
+                    });
+                    const totalSec = Math.floor(totalMs / 1000);
+                    const mins = Math.floor(totalSec / 60);
+                    const secs = totalSec % 60;
+                    const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                    return (
+                      <div
+                        key={name}
                         style={{
-                          width: "52px",
-                          minHeight: "52px",
-                          borderRadius: "12px",
-                          fontSize: "0.6rem",
-                          lineHeight: 1,
-                          overflow: "hidden",
-                          padding: 0,
-                          color: "#ffffff",
-                          backgroundColor: participant.left_at
-                            ? "#e05252"
-                            : "#4caf7d",
-                          borderColor: participant.left_at
-                            ? "#d14b4b"
-                            : "#3f9f6f",
+                          display: "flex",
+                          gap: "8px",
+                          alignItems: "baseline",
                         }}
                       >
-                        {participant.left_at ? "✗" : "✓"}
-                      </button>
-                    </div>
-                  ))}
+                        <span
+                          style={{
+                            color: "var(--text-main)",
+                            fontWeight: 500,
+                            fontSize: "0.95rem",
+                            minWidth: "90px",
+                          }}
+                        >
+                          {name}
+                        </span>
+                        <span
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {timeStr}
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="action-row">
-          <button
-            className={buttonClassName}
-            type="button"
-            onClick={handlePrimaryAction}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "SAVING..." : buttonLabel}
-          </button>
-          {isStarted ? (
-            <button
-              className="secondary-button cancel"
-              type="button"
-              onClick={handleCancelSession}
-              disabled={isSubmitting}
-            >
-              CANCEL SESSION
-            </button>
-          ) : null}
-        </div>
+            <div className="field">
+              <span
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: "0.8rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Started
+              </span>
+              <div
+                style={{
+                  color: "var(--text-main)",
+                  fontWeight: 500,
+                  fontSize: "0.95rem",
+                  padding: "4px 0",
+                }}
+              >
+                {startTime ? new Date(startTime).toLocaleTimeString() : ""}
+              </div>
+            </div>
 
-        {isStarted ? (
-          <p className="time-note">
-            Started at {new Date(startTime).toLocaleTimeString()}
-          </p>
-        ) : null}
-
-        {successMessage ? (
-          <>
-            <div className="alert success done-box">{successMessage}</div>
             <button
               className="secondary-button"
               type="button"
@@ -497,11 +549,196 @@ export default function App() {
             >
               NEXT
             </button>
+          </div>
+        ) : (
+          /* ── NORMAL FORM ── */
+          <>
+            <div style={{ marginBottom: "10px" }}>
+              <a
+                href="/forecast"
+                style={{
+                  color: "var(--secondary)",
+                  textDecoration: "none",
+                  fontSize: "0.9rem",
+                  fontWeight: 700,
+                }}
+              >
+                Open Forecast →
+              </a>
+            </div>
+
+            <h3>Hi! Simply record when you start and finish the counting.</h3>
+
+            <div className="form-grid">
+              <label className="field">
+                <input
+                  type="text"
+                  value={storeNumber}
+                  onChange={handleStoreNumberChange}
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="Type store number"
+                />
+              </label>
+
+              <label className="field">
+                <input
+                  type="text"
+                  list="supplier-options"
+                  value={supplierName}
+                  onChange={(event) => setSupplierName(event.target.value)}
+                  placeholder="Type or select supplier"
+                />
+                <datalist id="supplier-options">
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.id} value={supplier.name} />
+                  ))}
+                </datalist>
+              </label>
+
+              <label className="field">
+                <input
+                  type="number"
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                  placeholder="Enter value ($)"
+                  inputMode="decimal"
+                />
+              </label>
+
+              <div className="field">
+                <div className="people-list">
+                  <div className="person-row">
+                    <input
+                      type="text"
+                      value={personInput}
+                      onChange={(event) => setPersonInput(event.target.value)}
+                      placeholder="Who are working on ..."
+                    />
+                    <button
+                      className="icon-button add"
+                      type="button"
+                      onClick={addPerson}
+                      aria-label="Add person"
+                    >
+                      +
+                    </button>
+                  </div>
+                  {!isStarted
+                    ? pendingPeople.map((name, index) => (
+                        <div
+                          className="person-row"
+                          key={`pending-person-${index}`}
+                        >
+                          <input type="text" value={name} readOnly />
+                        </div>
+                      ))
+                    : displayParticipants.map((participant) => (
+                        <div
+                          className="person-row"
+                          key={`participant-${participant.id}`}
+                        >
+                          <input
+                            type="text"
+                            value={participant.name}
+                            readOnly
+                          />
+                          <button
+                            className="icon-button remove"
+                            type="button"
+                            onClick={() =>
+                              participant.left_at
+                                ? rejoinParticipant(participant.id)
+                                : leaveParticipant(participant.id)
+                            }
+                            aria-label={
+                              participant.left_at
+                                ? "Rejoin person"
+                                : "Leave person"
+                            }
+                            style={{
+                              width: "52px",
+                              minHeight: "52px",
+                              borderRadius: "12px",
+                              fontSize: "0.6rem",
+                              lineHeight: 1,
+                              overflow: "hidden",
+                              padding: 0,
+                              color: "#ffffff",
+                              backgroundColor: participant.left_at
+                                ? "#e05252"
+                                : "#4caf7d",
+                              borderColor: participant.left_at
+                                ? "#d14b4b"
+                                : "#3f9f6f",
+                            }}
+                          >
+                            {participant.left_at ? "✗" : "✓"}
+                          </button>
+                        </div>
+                      ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="action-row">
+              {isStarted && showConfirm ? (
+                <>
+                  <button
+                    className="primary-button start"
+                    type="button"
+                    onClick={() => {
+                      setShowConfirm(false);
+                      handlePrimaryAction();
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "SAVING..." : "SAVE"}
+                  </button>
+                  <button
+                    className="secondary-button cancel"
+                    type="button"
+                    onClick={handleCancelConfirm}
+                    disabled={isSubmitting}
+                  >
+                    CANCEL
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className={buttonClassName}
+                    type="button"
+                    onClick={isStarted ? handleEndClick : handlePrimaryAction}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "SAVING..." : buttonLabel}
+                  </button>
+                  {isStarted ? (
+                    <button
+                      className="secondary-button cancel"
+                      type="button"
+                      onClick={handleCancelSession}
+                      disabled={isSubmitting}
+                    >
+                      CANCEL SESSION
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </div>
+
+            {isStarted ? (
+              <p className="time-note">
+                Started at {new Date(startTime).toLocaleTimeString()}
+              </p>
+            ) : null}
+
+            {errorMessage ? (
+              <div className="alert error">{errorMessage}</div>
+            ) : null}
           </>
-        ) : null}
-        {errorMessage ? (
-          <div className="alert error">{errorMessage}</div>
-        ) : null}
+        )}
       </section>
     </main>
   );
